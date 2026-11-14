@@ -265,6 +265,32 @@ function sWrong(){tone(220,.25,0,"sine")}
 function sTap(i){tone(440+(i||0)*40,.12,0)}
 function sWin(){[523,659,784,1047,784,1047].forEach(function(f,i){tone(f,.25,i*.14)})}
 
+/* Speak the letter or number that was just picked, with the device's best Dutch voice. */
+function nlVoice(){
+  var list=[];
+  try{list=window.speechSynthesis.getVoices().filter(function(v){return v.lang&&v.lang.toLowerCase().replace("_","-").indexOf("nl")===0})}catch(e){}
+  function score(v){
+    var n=v.name.toLowerCase(),x=0;
+    if(/natural|neural|premium|enhanced|verbeterd|online/.test(n))x+=6;
+    if(/google/.test(n))x+=3;
+    if(/compact|eloquence|espeak/.test(n))x-=4;
+    if(v.lang.toLowerCase().replace("_","-")==="nl-nl")x+=1;
+    return x;
+  }
+  return list.sort(function(a,b){return score(b)-score(a)})[0]||null;
+}
+function say(t){
+  try{
+    var s=window.speechSynthesis;if(!s)return;
+    t=String(t).replace(/\s+/g,"").toLowerCase();if(!t)return;
+    s.cancel();
+    var u=new SpeechSynthesisUtterance(t),v=nlVoice();
+    u.lang=v?v.lang:"nl-NL";if(v)u.voice=v;u.rate=.85;u.pitch=1.15;
+    s.speak(u);
+  }catch(e){}
+}
+try{window.speechSynthesis&&window.speechSynthesis.getVoices()}catch(e){}
+
 function go(id){["home","game","win"].forEach(function(s){$(s).classList.toggle("on",s===id)})}
 
 function done(delay){
@@ -295,7 +321,7 @@ function matchGame(pieces,holes,onPlace,opts){
     var sx,sy,moved,active=false;
     function back(){p.style.transition="transform .2s";p.style.transform=""}
     p.addEventListener("pointerdown",function(e){
-      if(lock)return;active=true;moved=false;sx=e.clientX;sy=e.clientY;
+      if(lock)return;active=true;moved=false;say(p.textContent);sx=e.clientX;sy=e.clientY;
       try{p.setPointerCapture(e.pointerId)}catch(_){}
       p.classList.add("drag");p.classList.remove("nope");p.style.transition="none";
     });
@@ -380,7 +406,7 @@ var MISSIONS=[
       var b=el("button","mcard",c[1]);b.setAttribute("aria-label","kaart");
       b.onclick=function(){
         if(lock||busy||b.classList.contains("open"))return;
-        b.classList.add("open");open.push([b,c[0]]);sTap(open.length);
+        b.classList.add("open");open.push([b,c[0]]);say(c[0]);sTap(open.length);
         if(open.length<2)return;
         var a=open[0],z=open[1];open=[];
         if(a[1]===z[1]){
@@ -411,7 +437,7 @@ var MISSIONS=[
       var hit=svg("circle",{cx:p[0],cy:p[1],r:10,"class":"hit"});
       g.appendChild(d);g.appendChild(t);g.appendChild(hit);s.appendChild(g);dots.push(d);
       hit.addEventListener("click",function(){
-        if(lock||i<want)return;
+        if(lock||i<want)return;say(i+1);
         if(i===want){
           d.setAttribute("class","dot done");sTap(i);wrongs=0;want++;
           line.setAttribute("points",pts.slice(0,want).map(function(q){return q.join(",")}).join(" "));
@@ -444,6 +470,7 @@ var MISSIONS=[
       b.style.setProperty("--c",cols[rnd(cols.length)]);
       b.onclick=function(){
         if(lock)return;
+        say(b.textContent);
         if(isT){b.remove();sign.querySelectorAll("i")[got].classList.add("on");got++;sTap(got);if(got===3)done()}
         else{sWrong();reshake(b.firstChild,"nope")}
       };
@@ -494,7 +521,7 @@ var MISSIONS=[
         var on=path.indexOf(key),b=el("button","cell",on>=0?T:others[rnd(others.length)]);
         cells[key]=b;
         b.onclick=function(){
-          if(lock||(on>=0&&on<head))return;
+          if(lock||(on>=0&&on<head))return;say(b.textContent);
           if(on===head){
             b.classList.add("walked");b.classList.remove("hint");head++;sTap(head);wrongs=0;
             if(head===path.length){goal.classList.add("cheer");done(1800)}
@@ -521,6 +548,7 @@ var MISSIONS=[
       var p=el("button","pick",'<span class="nuts">'+nuts+'</span><span class="num">'+n+"</span>");
       p.onclick=function(){
         if(lock)return;
+        say(n);
         if(n===Math.max(a,b)){p.classList.add("yes");done()}else{sWrong();reshake(p,"nope")}
       };
       row.appendChild(p);
@@ -571,6 +599,7 @@ var MISSIONS=[
       var c=el("button","cell",i===odd?b:a);btns.push(c);
       c.onclick=function(){
         if(lock)return;
+        say(c.textContent);
         if(i===odd){c.classList.add("yes");done()}
         else{sWrong();reshake(c,"nope");if(++wrongs>=3)btns[odd].classList.add("hint")}
       };
@@ -611,6 +640,7 @@ var MISSIONS=[
       b.style.animationDuration=(5+rnd(5))+"s";b.style.animationDelay=(-rnd(5))+"s";
       b.onclick=function(){
         if(lock)return;
+        say(v);
         if(v===want){
           b.remove();slots.children[v-1].classList.add("full");sTap(v);wrongs=0;want++;
           if(want>n)done();
