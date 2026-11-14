@@ -191,6 +191,29 @@ h1{font-family:var(--display);font-weight:800;font-size:clamp(2.4rem,9vw,4.2rem)
 .rc button:disabled{opacity:.3}
 .brand .tools{display:flex;align-items:center;gap:10px}
 
+/* ---------- stars and sticker book ---------- */
+.prog{display:flex;align-items:center;gap:12px;background:var(--paper);border-radius:999px;padding:6px 14px;box-shadow:0 5px 0 rgba(23,51,42,.25);width:100%}
+.prog:active{transform:translateY(3px)}
+.prog .cnt{font-family:var(--display);font-weight:800;font-size:1.5rem;line-height:1;white-space:nowrap;font-variant-numeric:tabular-nums}
+.prog .track{flex:1;height:18px;border-radius:999px;background:rgba(23,51,42,.14);overflow:hidden}
+.prog .fill{display:block;height:100%;border-radius:999px;background:var(--sun);transition:width .6s}
+.prog .nx{font-size:2rem;line-height:1}
+.prog .nx.lock{filter:grayscale(1) brightness(.4);opacity:.55}
+#book h2{font-family:var(--display);font-weight:800;font-size:clamp(1.5rem,6vw,2.2rem);line-height:1;color:var(--moss);flex:1}
+#book .cnt{font-family:var(--display);font-weight:800;font-size:1.6rem;background:var(--paper);border-radius:999px;padding:4px 16px}
+.stickers{flex:1;min-height:0;overflow-y:auto;display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:12px;align-content:start;padding:2px 2px 12px}
+.st{background:var(--paper);border-radius:22px;aspect-ratio:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;
+  box-shadow:0 5px 0 rgba(23,51,42,.2)}
+.st span{font-size:clamp(2.6rem,10vw,3.6rem);line-height:1}
+.st small{font-family:var(--display);font-weight:800;font-size:1rem}
+.st.lock{background:rgba(255,248,231,.5);box-shadow:none}
+.st.lock span{filter:grayscale(1) brightness(.35);opacity:.4}
+.reset{align-self:center;font-size:.85rem;font-weight:800;background:transparent;text-decoration:underline;padding:8px;touch-action:none}
+#wNew{display:flex;gap:12px;min-height:0}
+#wNew span{font-size:clamp(4rem,18vw,6rem);line-height:1;background:var(--paper);border-radius:28px;padding:10px 16px;
+  box-shadow:0 0 0 8px var(--sun),0 10px 0 8px rgba(23,51,42,.25);animation:pop .8s 3}
+#win .prize{font-family:var(--display);font-weight:800}
+
 /* ---------- win ---------- */
 #win{align-items:center;justify-content:center;text-align:center;gap:18px}
 #win .who{font-size:clamp(5rem,26vw,9rem);line-height:1;animation:hop 1s infinite}
@@ -224,6 +247,7 @@ h1{font-family:var(--display);font-weight:800;font-size:clamp(2.4rem,9vw,4.2rem)
       </div>
     </div>
   </div>
+  <button class="prog" id="btnBook" aria-label="Stickerboek"></button>
   <div class="missions" id="missions"></div>
   <p class="note">Voor ouders: alles werkt met slepen of tikken, lezen hoeft niet.</p>
 </section>
@@ -246,9 +270,20 @@ h1{font-family:var(--display);font-weight:800;font-size:clamp(2.4rem,9vw,4.2rem)
   <div class="recgrid" id="recGrid"></div>
 </section>
 
+<section class="screen" id="book">
+  <div class="bar">
+    <button class="round" id="btnBookHome" aria-label="Terug naar het begin">🏠</button>
+    <h2>Stickerboek</h2>
+    <span class="cnt" id="bookCnt"></span>
+  </div>
+  <div class="stickers" id="stickers"></div>
+  <button class="reset" id="btnReset">Voor ouders: 3 seconden vasthouden om opnieuw te beginnen</button>
+</section>
+
 <section class="screen" id="win">
   <div class="who" id="wWho"></div>
-  <div class="prize">⭐🏆⭐</div>
+  <div class="prize" id="wPrize"></div>
+  <div id="wNew"></div>
   <div class="rowx">
     <button class="big" id="btnAgain" aria-label="Nog een keer">🔁</button>
     <button class="big alt" id="btnBack" aria-label="Andere missie">🏠</button>
@@ -270,7 +305,30 @@ function rnd(n){return Math.floor(Math.random()*n)}
 function shuffle(a){a=a.slice();for(var i=a.length-1;i>0;i--){var j=rnd(i+1),t=a[i];a[i]=a[j];a[j]=t}return a}
 function show(L){return state.caps?L.toUpperCase():L.toLowerCase()}
 function el(tag,cls,html){var e=document.createElement(tag);if(cls)e.className=cls;if(html!=null)e.innerHTML=html;return e}
-function store(k,v){try{if(v===undefined)return localStorage.getItem(k);localStorage.setItem(k,v)}catch(e){return null}}
+var mem={};
+function store(k,v){
+  try{if(v===undefined)return localStorage.getItem(k);localStorage.setItem(k,v)}
+  catch(e){if(v===undefined)return k in mem?mem[k]:null;mem[k]=v}
+}
+/* Progress: one star per finished round; stars unlock stickers at these totals. */
+var STICKERS=[[5,"🍄"],[10,"🌰"],[20,"🐌"],[30,"🦋"],[45,"🐞"],[60,"🌻"],[80,"🍎"],[100,"🐸"],[125,"🦔"],[150,"🐿️"],
+  [180,"🦉"],[210,"🦊"],[250,"🦌"],[300,"🌈"],[350,"🏕️"],[400,"👑"]];
+function total(){return parseInt(store("bos-stars"),10)||0}
+function renderProg(){
+  var t=total(),n=null,p=0;
+  STICKERS.forEach(function(x){if(x[0]<=t)p=x[0];else if(!n)n=x});
+  var pct=n?Math.round((t-p)/(n[0]-p)*100):100;
+  $("btnBook").innerHTML='<span class="cnt">⭐ '+t+'</span><span class="track"><span class="fill" style="width:'+pct+'%"></span></span>'+
+    '<span class="nx'+(n?" lock":"")+'">'+(n?n[1]:"👑")+"</span>";
+}
+function bookScreen(){
+  var t=total(),g=$("stickers");g.innerHTML="";$("bookCnt").textContent="⭐ "+t;
+  STICKERS.forEach(function(x){
+    var got=x[0]<=t;
+    g.appendChild(el("div","st"+(got?"":" lock"),"<span>"+x[1]+"</span>"+(got?"":"<small>⭐ "+x[0]+"</small>")));
+  });
+  go("book");
+}
 function each(list,fn){Array.prototype.forEach.call(list,fn)}
 function reshake(e,cls){e.classList.remove(cls);void e.getBoundingClientRect();e.classList.add(cls)}
 
@@ -382,11 +440,12 @@ function say(t){
 }
 try{window.speechSynthesis&&window.speechSynthesis.getVoices()}catch(e){}
 
-function go(id){["home","game","win","rec"].forEach(function(s){$(s).classList.toggle("on",s===id)})}
+function go(id){["home","game","win","rec","book"].forEach(function(s){$(s).classList.toggle("on",s===id)})}
 
 function done(delay){
   lock=true;sRight();
   $("stars").children[round].classList.add("got");
+  store("bos-stars",String(total()+1));
   reshake($("mascot"),"cheer");
   clearTimeout(timer);
   timer=setTimeout(function(){round++;round>=cur.rounds?win():next()},delay||1500);
@@ -758,6 +817,9 @@ function start(m){
 function win(){
   var k="bos-"+cur.id,n=(parseInt(store(k),10)||0)+1;store(k,String(n));
   clean();play.innerHTML="";
+  var t=total(),before=t-cur.rounds;
+  $("wPrize").textContent="+"+cur.rounds+" ⭐";
+  $("wNew").innerHTML=STICKERS.filter(function(x){return x[0]>before&&x[0]<=t}).map(function(x){return "<span>"+x[1]+"</span>"}).join("");
   $("wWho").textContent=cur.who;go("win");sWin();
   var cols=["#ffc93c","#e4572e","#3a9ec2","#2f6b4f","#fff8e7"];
   if(!(window.matchMedia&&matchMedia("(prefers-reduced-motion: reduce)").matches)){
@@ -778,6 +840,7 @@ function home(){
     b.onclick=function(){start(m)};
     box.appendChild(b);
   });
+  renderProg();
   $("caseUp").setAttribute("aria-pressed",String(state.caps));
   $("caseLow").setAttribute("aria-pressed",String(!state.caps));
   go("home");
@@ -786,6 +849,19 @@ $("caseUp").onclick=function(){state.caps=true;store("bos-caps","1");home()};
 $("caseLow").onclick=function(){state.caps=false;store("bos-caps","0");home()};
 $("btnHome").onclick=home;
 $("btnRecHome").onclick=home;
+$("btnBookHome").onclick=home;
+$("btnBook").onclick=bookScreen;
+(function(){
+  var b=$("btnReset"),h=null;
+  function stop(){clearTimeout(h);h=null}
+  b.addEventListener("pointerdown",function(){
+    stop();
+    h=setTimeout(function(){
+      store("bos-stars","0");MISSIONS.forEach(function(m){store("bos-"+m.id,"0")});bookScreen();
+    },3000);
+  });
+  ["pointerup","pointerleave","pointercancel"].forEach(function(ev){b.addEventListener(ev,stop)});
+})();
 $("btnRec").onclick=recScreen;
 $("btnBack").onclick=home;
 $("btnAgain").onclick=function(){start(cur)};
