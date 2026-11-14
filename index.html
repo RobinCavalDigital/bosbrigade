@@ -178,6 +178,19 @@ h1{font-family:var(--display);font-weight:800;font-size:clamp(2.4rem,9vw,4.2rem)
 @keyframes rise{from{top:100%}to{top:-30%}}
 @keyframes swim{from{left:0}to{left:calc(100% - 1.3em)}}
 
+/* ---------- record sounds (parents) ---------- */
+#rec h2{font-family:var(--display);font-weight:800;font-size:clamp(1.5rem,6vw,2.2rem);line-height:1;color:var(--moss);flex:1}
+#recNote{font-weight:800;font-size:.95rem;line-height:1.35;background:var(--paper);border-radius:16px;padding:10px 14px}
+.recgrid{flex:1;min-height:0;overflow-y:auto;display:grid;grid-template-columns:repeat(auto-fill,minmax(104px,1fr));gap:10px;align-content:start;padding:2px 2px 12px}
+.rc{background:var(--paper);border-radius:18px;padding:8px;display:flex;flex-direction:column;align-items:center;gap:6px;border:5px solid transparent}
+.rc.has{border-color:var(--moss)}
+.rc.recording{background:var(--berry);animation:pulse .5s infinite}
+.rc b{font-family:var(--display);font-weight:800;font-size:2rem;line-height:1}
+.rc div{display:flex;gap:8px}
+.rc button{width:46px;height:46px;border-radius:50%;background:var(--sun);font-size:1.2rem;box-shadow:0 4px 0 rgba(23,51,42,.28)}
+.rc button:disabled{opacity:.3}
+.brand .tools{display:flex;align-items:center;gap:10px}
+
 /* ---------- win ---------- */
 #win{align-items:center;justify-content:center;text-align:center;gap:18px}
 #win .who{font-size:clamp(5rem,26vw,9rem);line-height:1;animation:hop 1s infinite}
@@ -203,9 +216,12 @@ h1{font-family:var(--display);font-weight:800;font-size:clamp(2.4rem,9vw,4.2rem)
 <section class="screen on" id="home">
   <div class="brand">
     <h1>Bosbrigade</h1>
-    <div class="case" role="group" aria-label="Soort letters">
-      <button id="caseUp" aria-pressed="true">ABC</button>
-      <button id="caseLow" aria-pressed="false">abc</button>
+    <div class="tools">
+      <button class="round" id="btnRec" aria-label="Klanken opnemen (voor ouders)">🎙️</button>
+      <div class="case" role="group" aria-label="Soort letters">
+        <button id="caseUp" aria-pressed="true">ABC</button>
+        <button id="caseLow" aria-pressed="false">abc</button>
+      </div>
     </div>
   </div>
   <div class="missions" id="missions"></div>
@@ -219,6 +235,15 @@ h1{font-family:var(--display);font-weight:800;font-size:clamp(2.4rem,9vw,4.2rem)
     <div class="mascot" id="mascot"></div>
   </div>
   <div id="play"></div>
+</section>
+
+<section class="screen" id="rec">
+  <div class="bar">
+    <button class="round" id="btnRecHome" aria-label="Terug naar het begin">🏠</button>
+    <h2>Klanken opnemen</h2>
+  </div>
+  <p id="recNote">Tik op ⏺ en zeg meteen de klank zoals op school: rrr, mmm, sss. De opname duurt anderhalve seconde en speelt daarna af. Letters zonder opname spreekt de tablet uit als letternaam.</p>
+  <div class="recgrid" id="recGrid"></div>
 </section>
 
 <section class="screen" id="win">
@@ -265,6 +290,71 @@ function sWrong(){tone(220,.25,0,"sine")}
 function sTap(i){tone(440+(i||0)*40,.12,0)}
 function sWin(){[523,659,784,1047,784,1047].forEach(function(f,i){tone(f,.25,i*.14)})}
 
+/* Recorded letter sounds: a parent records each klank once; kept on this device in IndexedDB. */
+var snd={},db=null,player=null,stream=null,recBusy=false;
+function openDB(cb){
+  try{
+    var r=indexedDB.open("bosbrigade",1);
+    r.onupgradeneeded=function(){r.result.createObjectStore("snd")};
+    r.onsuccess=function(){db=r.result;cb()};
+    r.onerror=function(){cb()};
+  }catch(e){cb()}
+}
+function loadSnd(){
+  if(!db)return;
+  try{
+    var rq=db.transaction("snd").objectStore("snd").openCursor();
+    rq.onsuccess=function(){var c=rq.result;if(c){snd[c.key]=URL.createObjectURL(c.value);c.continue()}};
+  }catch(e){}
+}
+function saveSnd(k,blob){
+  if(snd[k])URL.revokeObjectURL(snd[k]);
+  snd[k]=URL.createObjectURL(blob);
+  try{db.transaction("snd","readwrite").objectStore("snd").put(blob,k)}catch(e){}
+}
+function playSnd(k){
+  try{if(player)player.pause();player=new Audio(snd[k]);var pr=player.play();if(pr&&pr.catch)pr.catch(function(){})}catch(e){}
+}
+function recError(){
+  $("recNote").textContent="Opnemen lukt hier niet. Open het spel via het eigen webadres (https) op de tablet en geef toestemming voor de microfoon.";
+}
+function record(k,cell,playBtn){
+  if(recBusy)return;
+  function run(){
+    var mr,chunks=[];
+    try{mr=new MediaRecorder(stream)}catch(e){recError();return}
+    recBusy=true;cell.classList.add("recording");
+    mr.ondataavailable=function(e){if(e.data&&e.data.size)chunks.push(e.data)};
+    mr.onstop=function(){
+      recBusy=false;cell.classList.remove("recording");
+      if(!chunks.length)return;
+      saveSnd(k,new Blob(chunks,{type:mr.mimeType||"audio/webm"}));
+      cell.classList.add("has");playBtn.disabled=false;playSnd(k);
+    };
+    mr.start();setTimeout(function(){try{mr.stop()}catch(e){recBusy=false}},1500);
+  }
+  if(stream){run();return}
+  try{
+    navigator.mediaDevices.getUserMedia({audio:true}).then(function(st){stream=st;run()},recError);
+  }catch(e){recError()}
+}
+function stopStream(){
+  if(stream){try{stream.getTracks().forEach(function(t){t.stop()})}catch(e){}stream=null}
+}
+function recScreen(){
+  var g=$("recGrid");g.innerHTML="";
+  "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("").forEach(function(k){
+    var cell=el("div","rc"+(snd[k]?" has":""),"<b>"+k+" "+k.toLowerCase()+"</b>"),row=el("div","");
+    var r=el("button","","⏺"),p=el("button","","▶");
+    r.setAttribute("aria-label","Neem klank "+k+" op");p.setAttribute("aria-label","Speel klank "+k+" af");
+    p.disabled=!snd[k];
+    r.onclick=function(){record(k,cell,p)};
+    p.onclick=function(){playSnd(k)};
+    row.appendChild(r);row.appendChild(p);cell.appendChild(row);g.appendChild(cell);
+  });
+  go("rec");
+}
+
 /* Speak the letter or number that was just picked, with the device's best Dutch voice. */
 function nlVoice(){
   var list=[];
@@ -284,6 +374,7 @@ function say(t){
     var s=window.speechSynthesis;if(!s)return;
     t=String(t).replace(/\s+/g,"").toLowerCase();if(!t)return;
     s.cancel();
+    if(t.length===1&&snd[t.toUpperCase()]){playSnd(t.toUpperCase());return}
     var u=new SpeechSynthesisUtterance(t),v=nlVoice();
     u.lang=v?v.lang:"nl-NL";if(v)u.voice=v;u.rate=.85;u.pitch=1.15;
     s.speak(u);
@@ -291,7 +382,7 @@ function say(t){
 }
 try{window.speechSynthesis&&window.speechSynthesis.getVoices()}catch(e){}
 
-function go(id){["home","game","win"].forEach(function(s){$(s).classList.toggle("on",s===id)})}
+function go(id){["home","game","win","rec"].forEach(function(s){$(s).classList.toggle("on",s===id)})}
 
 function done(delay){
   lock=true;sRight();
@@ -678,7 +769,7 @@ function win(){
   }
 }
 function home(){
-  clearTimeout(timer);clean();play.innerHTML="";
+  clearTimeout(timer);clean();play.innerHTML="";stopStream();
   var box=$("missions");box.innerHTML="";
   MISSIONS.forEach(function(m){
     var b=el("button","card");b.style.setProperty("--c",m.c);
@@ -694,10 +785,13 @@ function home(){
 $("caseUp").onclick=function(){state.caps=true;store("bos-caps","1");home()};
 $("caseLow").onclick=function(){state.caps=false;store("bos-caps","0");home()};
 $("btnHome").onclick=home;
+$("btnRecHome").onclick=home;
+$("btnRec").onclick=recScreen;
 $("btnBack").onclick=home;
 $("btnAgain").onclick=function(){start(cur)};
 
 function boot(data){
+  openDB(loadSnd);
   var saved=store("bos-caps");
   if(data&&typeof data.caps==="boolean")state.caps=data.caps;
   else if(saved!=null)state.caps=saved!=="0";
