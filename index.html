@@ -797,6 +797,11 @@ function boot(data){
   else if(saved!=null)state.caps=saved!=="0";
   home();
 }
+try{
+  if("serviceWorker" in navigator&&location.protocol==="https:"&&/github\.io$/.test(location.hostname)===true||("serviceWorker" in navigator&&location.protocol==="https:"&&!window.claude)){
+    navigator.serviceWorker.register("sw.js").catch(function(){});
+  }
+}catch(e){}
 var hot=window.claude&&window.claude.hot;
 if(hot&&hot.snapshot)hot.snapshot(function(){return {caps:state.caps}});
 if(hot&&hot.ready)hot.ready(boot);else boot((hot&&hot.data)||{});
