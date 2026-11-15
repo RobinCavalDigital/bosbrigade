@@ -23,6 +23,7 @@
   --pond:#3a9ec2;
   --display:"Baloo 2","Trebuchet MS","Comic Sans MS",system-ui,sans-serif;
   --body:"Nunito","Trebuchet MS",system-ui,sans-serif;
+  --onbg:var(--ink);--head:var(--moss);--headsh:var(--paper);--back:"🌲";
   color-scheme:light;
 }
 *{box-sizing:border-box;margin:0;padding:0}
@@ -37,10 +38,25 @@ button:focus-visible{outline:5px solid var(--ink);outline-offset:3px}
 .screen{display:none;height:100%;flex-direction:column;padding:16px;gap:14px;max-width:860px;margin:0 auto}
 .screen.on{display:flex}
 
+/* ---------- Sinterklaas theme: night sky over red rooftops ---------- */
+body.sint{
+  --sky:#1b2a5e;--grass:#8a1c22;--moss:#a3161f;--onbg:#fff8e7;--head:var(--sun);--headsh:#7a1219;--back:"🎁";
+  background:
+    radial-gradient(circle at 12% 14%,#fff 0 2px,transparent 3px),radial-gradient(circle at 31% 33%,#ffe9a8 0 2px,transparent 3px),
+    radial-gradient(circle at 52% 9%,#fff 0 1.5px,transparent 2.5px),radial-gradient(circle at 68% 27%,#fff 0 2px,transparent 3px),
+    radial-gradient(circle at 86% 12%,#ffe9a8 0 2.5px,transparent 3.5px),radial-gradient(circle at 93% 41%,#fff 0 1.5px,transparent 2.5px),
+    radial-gradient(circle at 7% 47%,#fff 0 1.5px,transparent 2.5px),radial-gradient(circle at 44% 50%,#ffe9a8 0 2px,transparent 3px),
+    radial-gradient(circle at 22% 56%,#fff 0 1.5px,transparent 2.5px),radial-gradient(circle at 76% 53%,#fff 0 1.5px,transparent 2.5px),
+    linear-gradient(var(--sky) 0 62%,#fff8e7 62% 63.2%,var(--grass) 63.2% 100%);
+}
+body.sint .stars span{filter:grayscale(1) brightness(1.6)}
+body.sint .stars span.got{filter:none}
+body.sint .hole.letter,body.sint .hole.halfhole,body.sint .hole.group,body.sint .hole.bin,body.sint .pick{background:rgba(255,248,231,.9)}
+
 /* ---------- home ---------- */
 .brand{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;flex-wrap:wrap}
-h1{font-family:var(--display);font-weight:800;font-size:clamp(2.4rem,9vw,4.2rem);line-height:.9;color:var(--moss);
-  text-shadow:0 4px 0 var(--paper)}
+h1{font-family:var(--display);font-weight:800;font-size:clamp(2.4rem,9vw,4.2rem);line-height:.9;color:var(--head);
+  text-shadow:0 4px 0 var(--headsh)}
 .case{display:flex;background:var(--paper);border-radius:999px;padding:4px;box-shadow:0 4px 0 rgba(23,51,42,.25)}
 .case button{font-family:var(--display);font-weight:800;font-size:1.3rem;padding:4px 16px;border-radius:999px;background:transparent;min-height:48px}
 .case button[aria-pressed="true"]{background:var(--moss);color:var(--paper)}
@@ -55,7 +71,7 @@ h1{font-family:var(--display);font-weight:800;font-size:clamp(2.4rem,9vw,4.2rem)
 .card .sym{font-family:var(--display);font-weight:800;font-size:clamp(1.25rem,4.4vw,1.9rem);line-height:1.1;color:var(--c);white-space:nowrap}
 .card .lbl{font-weight:800;font-size:clamp(.9rem,3.2vw,1.15rem);text-align:center}
 .card .won{position:absolute;top:8px;right:12px;font-family:var(--display);font-weight:800;font-size:1.05rem}
-.note{font-size:.85rem;font-weight:600;text-align:center}
+.note{font-size:.85rem;font-weight:600;text-align:center;color:var(--onbg)}
 
 /* ---------- game ---------- */
 .bar{display:flex;align-items:center;gap:10px}
@@ -101,7 +117,7 @@ h1{font-family:var(--display);font-weight:800;font-size:clamp(2.4rem,9vw,4.2rem)
   width:clamp(70px,20vw,130px);aspect-ratio:1;border-radius:22px;background:var(--moss);color:transparent;
   box-shadow:0 7px 0 rgba(23,51,42,.3);display:grid;place-items:center;position:relative;transition:transform .15s;
 }
-.mcard::after{content:"🌲";position:absolute;inset:0;display:grid;place-items:center;font-size:.9em;color:initial}
+.mcard::after{content:var(--back);position:absolute;inset:0;display:grid;place-items:center;font-size:.9em;color:initial}
 .mcard.open{background:var(--paper);color:var(--ink);transform:scale(1.04)}
 .mcard.open::after{content:none}
 .mcard.match{background:var(--sun);animation:pop .5s}
@@ -179,7 +195,7 @@ h1{font-family:var(--display);font-weight:800;font-size:clamp(2.4rem,9vw,4.2rem)
 @keyframes swim{from{left:0}to{left:calc(100% - 1.3em)}}
 
 /* ---------- record sounds (parents) ---------- */
-#rec h2{font-family:var(--display);font-weight:800;font-size:clamp(1.5rem,6vw,2.2rem);line-height:1;color:var(--moss);flex:1}
+#rec h2{font-family:var(--display);font-weight:800;font-size:clamp(1.5rem,6vw,2.2rem);line-height:1;color:var(--head);flex:1}
 #recNote{font-weight:800;font-size:.95rem;line-height:1.35;background:var(--paper);border-radius:16px;padding:10px 14px}
 .recgrid{flex:1;min-height:0;overflow-y:auto;display:grid;grid-template-columns:repeat(auto-fill,minmax(104px,1fr));gap:10px;align-content:start;padding:2px 2px 12px}
 .rc{background:var(--paper);border-radius:18px;padding:8px;display:flex;flex-direction:column;align-items:center;gap:6px;border:5px solid transparent}
@@ -199,7 +215,7 @@ h1{font-family:var(--display);font-weight:800;font-size:clamp(2.4rem,9vw,4.2rem)
 .prog .fill{display:block;height:100%;border-radius:999px;background:var(--sun);transition:width .6s}
 .prog .nx{font-size:2rem;line-height:1}
 .prog .nx.lock{filter:grayscale(1) brightness(.4);opacity:.55}
-#book h2{font-family:var(--display);font-weight:800;font-size:clamp(1.5rem,6vw,2.2rem);line-height:1;color:var(--moss);flex:1}
+#book h2{font-family:var(--display);font-weight:800;font-size:clamp(1.5rem,6vw,2.2rem);line-height:1;color:var(--head);flex:1}
 #book .cnt{font-family:var(--display);font-weight:800;font-size:1.6rem;background:var(--paper);border-radius:999px;padding:4px 16px}
 .stickers{flex:1;min-height:0;overflow-y:auto;display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:12px;align-content:start;padding:2px 2px 12px}
 .st{background:var(--paper);border-radius:22px;aspect-ratio:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;
@@ -208,7 +224,7 @@ h1{font-family:var(--display);font-weight:800;font-size:clamp(2.4rem,9vw,4.2rem)
 .st small{font-family:var(--display);font-weight:800;font-size:1rem}
 .st.lock{background:rgba(255,248,231,.5);box-shadow:none}
 .st.lock span{filter:grayscale(1) brightness(.35);opacity:.4}
-.reset{align-self:center;font-size:.85rem;font-weight:800;background:transparent;text-decoration:underline;padding:8px;touch-action:none}
+.reset{color:var(--onbg);align-self:center;font-size:.85rem;font-weight:800;background:transparent;text-decoration:underline;padding:8px;touch-action:none}
 #wNew{display:flex;gap:12px;min-height:0}
 #wNew span{font-size:clamp(4rem,18vw,6rem);line-height:1;background:var(--paper);border-radius:28px;padding:10px 16px;
   box-shadow:0 0 0 8px var(--sun),0 10px 0 8px rgba(23,51,42,.25);animation:pop .8s 3}
@@ -254,8 +270,9 @@ h1{font-family:var(--display);font-weight:800;font-size:clamp(2.4rem,9vw,4.2rem)
 
 <section class="screen on" id="home">
   <div class="brand">
-    <h1>Bosbrigade</h1>
+    <h1 id="ttl">Bosbrigade</h1>
     <div class="tools">
+      <button class="round" id="btnTheme" aria-label="Wissel van thema"></button>
       <button class="round" id="btnRec" aria-label="Klanken opnemen (voor ouders)">🎙️</button>
       <div class="case" role="group" aria-label="Soort letters">
         <button id="caseUp" aria-pressed="true">ABC</button>
@@ -307,7 +324,7 @@ h1{font-family:var(--display);font-weight:800;font-size:clamp(2.4rem,9vw,4.2rem)
   </div>
 </section>
 
-<div id="party" aria-hidden="true"><div class="pstar">⭐</div><div class="pst" id="pSticker"></div></div>
+<div id="party" aria-hidden="true"><div class="pstar" id="pCoin">⭐</div><div class="pst" id="pSticker"></div></div>
 
 <script>
 (function(){
@@ -331,8 +348,25 @@ function store(k,v){
 }
 /* Progress: 1 point per finished round, 5 per finished game. Points count per day; every 20 points is a star.
    Stars are kept forever and unlock stickers at these totals. */
-var STICKERS=[[1,"🍄"],[2,"🌰"],[3,"🐌"],[5,"🦋"],[7,"🐞"],[9,"🌻"],[12,"🍎"],[15,"🐸"],[18,"🦔"],[22,"🐿️"],
-  [26,"🦉"],[30,"🦊"],[35,"🦌"],[40,"🌈"],[45,"🏕️"],[50,"👑"]];
+var STEPS=[1,2,3,5,7,9,12,15,18,22,26,30,35,40,45,50];
+var THEMES={
+  bos:{title:"Bosbrigade",coin:"⭐",nut:"🌰",from:"🦔",to:"🍎",other:"🎁",who:{},lbl:{},
+    stickers:["🍄","🌰","🐌","🦋","🐞","🌻","🍎","🐸","🦔","🐿️","🦉","🦊","🦌","🌈","🏕️","👑"]},
+  sint:{title:"Pakjesbrigade",coin:"🎁",nut:"🍪",from:"🐴",to:"🥕",other:"🌲",
+    who:{puzzel:"🍫",tel:"🍪",memory:"🎁",stippen:"🌙",ballon:"🎈",ontbreekt:"👞",grootklein:"📖",pad:"🐴",meer:"🍊",sorteer:"🧦",half:"🕯️",vreemd:"🔍",patroon:"🥁",vissen:"🚢"},
+    lbl:{puzzel:"Chocoladeletters",tel:"Tel de pepernoten",memory:"Pakjesmemory",pad:"Paard naar de wortel",meer:"Waar ligt meer?",sorteer:"Sorteer de zak"},
+    stickers:["🥕","👞","🍪","🍊","🍫","🐴","🚢","📖","🌙","🧦","🎶","🥁","🕯️","🧸","🚂","🎉"]}
+};
+var T=THEMES.bos;
+function seasonTheme(){var d=new Date(),m=d.getMonth()+1;return (m===11||(m===12&&d.getDate()<=6))?"sint":"bos"}
+function setTheme(name){
+  T=THEMES[name]||THEMES.bos;T.name=THEMES[name]?name:"bos";
+  document.body.classList.toggle("sint",T.name==="sint");
+  $("ttl").textContent=T.title;$("pCoin").textContent=T.coin;$("btnTheme").textContent=T.other;
+}
+function stickers(){return STEPS.map(function(n,i){return [n,T.stickers[i]]})}
+function theme(){return T}
+function who(m){return T.who[m.id]||m.who}
 var GOAL=20,shown=0,shownStars=0,target=0,ticking=null;
 function today(){var d=new Date();return d.getFullYear()+"-"+(d.getMonth()+1)+"-"+d.getDate()}
 function total(){
@@ -351,7 +385,7 @@ function renderMeters(full){
     m.querySelector(".fill").style.width=(v/GOAL*100)+"%";
     m.querySelector(".num").textContent=v+"/"+GOAL;
   });
-  each(document.querySelectorAll(".starcnt"),function(x){x.textContent="⭐ "+shownStars});
+  each(document.querySelectorAll(".starcnt"),function(x){x.textContent=T.coin+" "+shownStars});
   $("dayCnt").textContent="Vandaag "+shown;
 }
 function confetti(n){
@@ -365,7 +399,7 @@ function confetti(n){
   }
 }
 function party(){
-  var st=STICKERS.filter(function(x){return x[0]===shownStars})[0];
+  var st=stickers().filter(function(x){return x[0]===shownStars})[0];
   $("pSticker").textContent=st?st[1]:"";
   var p=$("party");p.classList.remove("on");void p.getBoundingClientRect();p.classList.add("on");
   sParty();confetti(90);
@@ -393,9 +427,9 @@ function syncMeters(){
 }
 function bookScreen(){
   var t=total(),g=$("stickers");g.innerHTML="";
-  STICKERS.forEach(function(x){
+  stickers().forEach(function(x){
     var got=x[0]<=t;
-    g.appendChild(el("div","st"+(got?"":" lock"),"<span>"+x[1]+"</span>"+(got?"":"<small>⭐ "+x[0]+"</small>")));
+    g.appendChild(el("div","st"+(got?"":" lock"),"<span>"+x[1]+"</span>"+(got?"":"<small>"+T.coin+" "+x[0]+"</small>")));
   });
   go("book");
 }
@@ -630,14 +664,14 @@ var MISSIONS=[
     matchGame(pieces,holes,function(){});
   }},
  {id:"tel",who:"🐿️",c:"var(--pond)",lbl:"Tel de nootjes",rounds:5,
-  sym:function(){return "🌰🌰 → 2"},
+  sym:function(){return T.nut+T.nut+" → 2"},
   setup:function(r){
     var max=r<2?5:r<4?7:9;
     var nums=shuffle(Array.apply(null,Array(max)).map(function(_,i){return i+1})).slice(0,3);
     var top=el("div","rowx"),bot=el("div","rowx"),holes=[],pieces=[];
     nums.forEach(function(n){
       var h=el("div","hole group");h.dataset.k=String(n);
-      var nuts="";for(var i=0;i<n;i++)nuts+="<span>🌰</span>";
+      var nuts="";for(var i=0;i<n;i++)nuts+="<span>"+T.nut+"</span>";
       h.appendChild(el("div","nuts",nuts));h.appendChild(el("div","slot",""));
       holes.push(h);top.appendChild(h);
     });
@@ -646,7 +680,7 @@ var MISSIONS=[
     matchGame(pieces,holes,function(p,h){h.querySelector(".slot").textContent=p.dataset.k});
   }},
  {id:"memory",who:"🦉",c:"var(--sun)",lbl:"Memory",rounds:3,
-  sym:function(){return "🌲 "+show("b")+" 🌲"},
+  sym:function(){var b=T.name==="sint"?"🎁":"🌲";return b+" "+show("b")+" "+b},
   setup:function(r){
     var pairs=r===0?3:4, cards=[];
     if(r===0)shuffle(LETTERS).slice(0,pairs).forEach(function(L){cards.push([L,show(L)],[L,show(L)])});
@@ -760,7 +794,7 @@ var MISSIONS=[
   }},
 
  {id:"pad",who:"🦔",c:"var(--moss)",lbl:"Volg het letterpad",rounds:3,
-  sym:function(){return "🦔 "+show("a")+show("a")+" 🍎"},
+  sym:function(){return T.from+" "+show("a")+show("a")+" "+T.to},
   setup:function(r){
     var N=r===0?3:4,pool=LETTERS.map(show),T=pool[rnd(pool.length)];
     var others=pool.filter(function(x){return x!==T}),path=[],row=rnd(N),c;
@@ -771,7 +805,7 @@ var MISSIONS=[
     var startRow=+path[0].split("-")[0],endRow=row,head=0,cells={},goal;
     var grid=el("div","maze");grid.style.gridTemplateColumns="auto repeat("+N+",auto) auto";
     for(var rr=0;rr<N;rr++){
-      grid.appendChild(el("div","edge",rr===startRow?"🦔":""));
+      grid.appendChild(el("div","edge",rr===startRow?theme().from:""));
       for(c=0;c<N;c++)(function(key){
         var on=path.indexOf(key),b=el("button","cell",on>=0?T:others[rnd(others.length)]);
         cells[key]=b;
@@ -787,19 +821,19 @@ var MISSIONS=[
         };
         grid.appendChild(b);
       })(rr+"-"+c);
-      var e=el("div","edge",rr===endRow?"🍎":"");if(rr===endRow)goal=e;grid.appendChild(e);
+      var e=el("div","edge",rr===endRow?theme().to:"");if(rr===endRow)goal=e;grid.appendChild(e);
     }
     play.appendChild(el("div","target","<b>"+T+"</b>"));play.appendChild(grid);
   }},
 
  {id:"meer",who:"🐭",c:"var(--berry)",lbl:"Waar zijn er meer?",rounds:5,
-  sym:function(){return "🌰 &lt; 🌰🌰"},
+  sym:function(){return T.nut+" &lt; "+T.nut+T.nut},
   setup:function(r){
     var max=r<2?5:9,a,b;
     do{a=1+rnd(max);b=1+rnd(max)}while(a===b||(r<2&&Math.abs(a-b)<2));
     var row=el("div","rowx");
     [a,b].forEach(function(n){
-      var nuts="";for(var i=0;i<n;i++)nuts+="<span>🌰</span>";
+      var nuts="";for(var i=0;i<n;i++)nuts+="<span>"+T.nut+"</span>";
       var p=el("button","pick",'<span class="nuts">'+nuts+'</span><span class="num">'+n+"</span>");
       p.onclick=function(){
         if(lock)return;
@@ -914,16 +948,16 @@ var MISSIONS=[
 function next(){clean();lock=false;wrongs=0;sel=null;play.innerHTML="";cur.setup(round)}
 function start(m){
   cur=m;round=0;
-  $("mascot").textContent=m.who;
+  $("mascot").textContent=who(m);
   var s=$("stars");s.innerHTML="";
-  for(var i=0;i<m.rounds;i++)s.appendChild(el("span","","⭐"));
+  for(var i=0;i<m.rounds;i++)s.appendChild(el("span","",T.coin));
   go("game");next();
 }
 function win(){
   var k="bos-"+cur.id,n=(parseInt(store(k),10)||0)+1;store(k,String(n));
   clean();play.innerHTML="";
   $("wPrize").textContent="+5";
-  $("wWho").textContent=cur.who;go("win");sWin();confetti(60);
+  $("wWho").textContent=who(cur);go("win");sWin();confetti(60);
   setTimeout(function(){addPoints(5)},700);
 }
 function home(){
@@ -932,7 +966,7 @@ function home(){
   MISSIONS.forEach(function(m){
     var b=el("button","card");b.style.setProperty("--c",m.c);
     var n=parseInt(store("bos-"+m.id),10)||0;
-    b.innerHTML='<span class="who">'+m.who+'</span><span class="sym">'+m.sym()+'</span><span class="lbl">'+m.lbl+'</span>'+(n?'<span class="won">🏆 '+n+'</span>':'');
+    b.innerHTML='<span class="who">'+who(m)+'</span><span class="sym">'+m.sym()+'</span><span class="lbl">'+(T.lbl[m.id]||m.lbl)+'</span>'+(n?'<span class="won">🏆 '+n+'</span>':'');
     b.onclick=function(){start(m)};
     box.appendChild(b);
   });
@@ -947,6 +981,8 @@ $("btnHome").onclick=home;
 $("btnRecHome").onclick=home;
 $("btnBookHome").onclick=home;
 $("btnBook").onclick=bookScreen;
+$("btnTheme").onclick=function(){var n=T.name==="sint"?"bos":"sint";store("bos-theme",n);setTheme(n);syncOrKeep();home()};
+function syncOrKeep(){renderMeters()}
 (function(){
   var b=$("btnReset"),h=null;
   function stop(){clearTimeout(h);h=null}
@@ -963,6 +999,7 @@ $("btnBack").onclick=home;
 $("btnAgain").onclick=function(){start(cur)};
 
 function boot(data){
+  setTheme(store("bos-theme")||seasonTheme());
   openDB(loadSnd);
   syncMeters();
   var saved=store("bos-caps");
