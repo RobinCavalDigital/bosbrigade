@@ -198,6 +198,7 @@ h1{font-family:var(--display);font-weight:800;font-size:clamp(2.4rem,9vw,4.2rem)
 #rec h2{font-family:var(--display);font-weight:800;font-size:clamp(1.5rem,6vw,2.2rem);line-height:1;color:var(--head);flex:1}
 #recNote{font-weight:800;font-size:.95rem;line-height:1.35;background:var(--paper);border-radius:16px;padding:10px 14px}
 .recgrid{flex:1;min-height:0;overflow-y:auto;display:grid;grid-template-columns:repeat(auto-fill,minmax(104px,1fr));gap:10px;align-content:start;padding:2px 2px 12px}
+.share{align-self:center;font-weight:800;font-size:1rem;background:var(--sun);border-radius:999px;padding:10px 22px;min-height:52px;box-shadow:0 5px 0 rgba(23,51,42,.28)}
 .rc{background:var(--paper);border-radius:18px;padding:8px;display:flex;flex-direction:column;align-items:center;gap:6px;border:5px solid transparent}
 .rc.has{border-color:var(--moss)}
 .rc.recording{background:var(--berry);animation:pulse .5s infinite}
@@ -302,6 +303,8 @@ h1{font-family:var(--display);font-weight:800;font-size:clamp(2.4rem,9vw,4.2rem)
   </div>
   <p id="recNote">Tik op ⏺ en zeg meteen de klank zoals op school: rrr, mmm, sss. De opname duurt anderhalve seconde en speelt daarna af. Letters zonder opname spreekt de tablet uit als letternaam.</p>
   <div class="recgrid" id="recGrid"></div>
+  <button class="share" id="btnExport">Klanken delen met alle apparaten</button>
+  <p class="note" id="recMsg"></p>
 </section>
 
 <section class="screen" id="book">
@@ -501,16 +504,53 @@ function loadSnd(){
   if(!db)return;
   try{
     var rq=db.transaction("snd").objectStore("snd").openCursor();
-    rq.onsuccess=function(){var c=rq.result;if(c){snd[c.key]=URL.createObjectURL(c.value);c.continue()}};
+    rq.onsuccess=function(){var c=rq.result;if(c){own[c.key]=1;snd[c.key]=URL.createObjectURL(c.value);c.continue()}};
   }catch(e){}
 }
 function saveSnd(k,blob){
   if(snd[k])URL.revokeObjectURL(snd[k]);
-  snd[k]=URL.createObjectURL(blob);
+  snd[k]=URL.createObjectURL(blob);own[k]=1;
   try{db.transaction("snd","readwrite").objectStore("snd").put(blob,k)}catch(e){}
 }
-function playSnd(k){
-  try{if(player)player.pause();player=new Audio(snd[k]);var pr=player.play();if(pr&&pr.catch)pr.catch(function(){})}catch(e){}
+function playSnd(k,onFail){
+  onFail=onFail||function(){};
+  try{
+    if(player)player.pause();
+    player=new Audio(snd[k]);player.onerror=onFail;
+    var pr=player.play();if(pr&&pr.catch)pr.catch(onFail);
+  }catch(e){onFail()}
+}
+/* Shared sounds: klanken.json next to index.html holds recordings for every device. Own recordings win. */
+var own={};
+function loadShared(){
+  try{
+    fetch("klanken.json",{cache:"no-cache"}).then(function(r){return r.ok?r.json():null}).then(function(j){
+      if(!j)return;
+      Object.keys(j).forEach(function(k){
+        if(own[k]||!/^data:audio\//.test(j[k]))return;
+        fetch(j[k]).then(function(r){return r.blob()}).then(function(b){if(!own[k])snd[k]=URL.createObjectURL(b)}).catch(function(){});
+      });
+    }).catch(function(){});
+  }catch(e){}
+}
+function exportSnd(){
+  var keys=Object.keys(snd),out={},left=keys.length,msg=$("recMsg");
+  if(!left){msg.textContent="Er zijn nog geen opnames om te delen.";return}
+  keys.forEach(function(k){
+    fetch(snd[k]).then(function(r){return r.blob()}).then(function(b){
+      var fr=new FileReader();
+      fr.onload=function(){out[k]=fr.result;fin()};fr.onerror=fin;fr.readAsDataURL(b);
+    }).catch(fin);
+  });
+  function fin(){
+    if(--left)return;
+    try{
+      var a=document.createElement("a");
+      a.href=URL.createObjectURL(new Blob([JSON.stringify(out)],{type:"application/json"}));
+      a.download="klanken.json";document.body.appendChild(a);a.click();a.remove();
+      msg.textContent=Object.keys(out).length+" klanken opgeslagen als klanken.json in je downloads. Zet dat bestand in de repo naast index.html; daarna hoort elk apparaat deze klanken.";
+    }catch(e){msg.textContent="Het bestand maken lukt hier niet. Open het spel via het eigen webadres."}
+  }
 }
 function recError(){
   $("recNote").textContent="Opnemen lukt hier niet. Open het spel via het eigen webadres (https) op de tablet en geef toestemming voor de microfoon.";
@@ -519,7 +559,10 @@ function record(k,cell,playBtn){
   if(recBusy)return;
   function run(){
     var mr,chunks=[];
-    try{mr=new MediaRecorder(stream)}catch(e){recError();return}
+    try{
+      var mp4=window.MediaRecorder&&MediaRecorder.isTypeSupported&&MediaRecorder.isTypeSupported("audio/mp4");
+      mr=mp4?new MediaRecorder(stream,{mimeType:"audio/mp4"}):new MediaRecorder(stream);
+    }catch(e){recError();return}
     recBusy=true;cell.classList.add("recording");
     mr.ondataavailable=function(e){if(e.data&&e.data.size)chunks.push(e.data)};
     mr.onstop=function(){
@@ -566,16 +609,21 @@ function nlVoice(){
   }
   return list.sort(function(a,b){return score(b)-score(a)})[0]||null;
 }
-function say(t){
+function tts(t){
   try{
     var s=window.speechSynthesis;if(!s)return;
-    t=String(t).replace(/\s+/g,"").toLowerCase();if(!t)return;
     s.cancel();
-    if(t.length===1&&snd[t.toUpperCase()]){playSnd(t.toUpperCase());return}
     var u=new SpeechSynthesisUtterance(t),v=nlVoice();
     u.lang=v?v.lang:"nl-NL";if(v)u.voice=v;u.rate=.85;u.pitch=1.15;
     s.speak(u);
   }catch(e){}
+}
+function say(t){
+  t=String(t).replace(/\s+/g,"").toLowerCase();if(!t)return;
+  try{window.speechSynthesis&&window.speechSynthesis.cancel()}catch(e){}
+  var k=t.toUpperCase();
+  if(t.length===1&&snd[k]){playSnd(k,function(){delete snd[k];tts(t)});return}
+  tts(t);
 }
 try{window.speechSynthesis&&window.speechSynthesis.getVoices()}catch(e){}
 
@@ -995,12 +1043,13 @@ function syncOrKeep(){renderMeters()}
   ["pointerup","pointerleave","pointercancel"].forEach(function(ev){b.addEventListener(ev,stop)});
 })();
 $("btnRec").onclick=recScreen;
+$("btnExport").onclick=exportSnd;
 $("btnBack").onclick=home;
 $("btnAgain").onclick=function(){start(cur)};
 
 function boot(data){
   setTheme(store("bos-theme")||seasonTheme());
-  openDB(loadSnd);
+  openDB(function(){loadSnd();loadShared()});
   syncMeters();
   var saved=store("bos-caps");
   if(data&&typeof data.caps==="boolean")state.caps=data.caps;
