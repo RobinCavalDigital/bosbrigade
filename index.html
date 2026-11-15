@@ -214,6 +214,22 @@ h1{font-family:var(--display);font-weight:800;font-size:clamp(2.4rem,9vw,4.2rem)
   box-shadow:0 0 0 8px var(--sun),0 10px 0 8px rgba(23,51,42,.25);animation:pop .8s 3}
 #win .prize{font-family:var(--display);font-weight:800}
 
+.meter{flex:1;display:flex;align-items:center;gap:10px;min-width:0}
+.meter .track{flex:1;height:20px;border-radius:999px;background:rgba(23,51,42,.14);overflow:hidden}
+.meter .fill{display:block;height:100%;width:0;border-radius:999px;background:linear-gradient(90deg,var(--sun),var(--berry));transition:width .25s}
+.meter .num{font-family:var(--display);font-weight:800;font-size:1.3rem;line-height:1;font-variant-numeric:tabular-nums;white-space:nowrap}
+.meter.solo{flex:none;width:100%;background:var(--paper);border-radius:999px;padding:6px 16px;box-shadow:0 4px 0 rgba(23,51,42,.2)}
+#win .meter.solo{max-width:420px}
+.prog .day{font-weight:800;font-size:.85rem;white-space:nowrap}
+#party{position:fixed;inset:0;display:none;align-items:center;justify-content:center;gap:16px;pointer-events:none;z-index:50;
+  background:radial-gradient(circle,rgba(255,201,60,.55),rgba(255,201,60,0) 65%)}
+#party.on{display:flex}
+#party .pstar{font-size:clamp(8rem,40vw,15rem);line-height:1;animation:starburst 2.6s ease-out forwards}
+#party .pst{font-size:clamp(4rem,18vw,7rem);line-height:1;animation:starburst 2.6s .3s ease-out both}
+#party .pst:empty{display:none}
+@keyframes starburst{0%{transform:scale(0) rotate(-180deg);opacity:0}25%{transform:scale(1.25) rotate(10deg);opacity:1}
+  40%{transform:scale(1) rotate(0)}80%{transform:scale(1.05);opacity:1}100%{transform:scale(1.6);opacity:0}}
+
 /* ---------- win ---------- */
 #win{align-items:center;justify-content:center;text-align:center;gap:18px}
 #win .who{font-size:clamp(5rem,26vw,9rem);line-height:1;animation:hop 1s infinite}
@@ -230,7 +246,7 @@ h1{font-family:var(--display);font-weight:800;font-size:clamp(2.4rem,9vw,4.2rem)
 @keyframes fadein{from{opacity:0}}
 @keyframes hop{50%{transform:translateY(-14px)}}
 @keyframes fall{to{transform:translateY(110vh) rotate(540deg)}}
-@media (prefers-reduced-motion:reduce){*{animation:none !important}}
+@media (prefers-reduced-motion:reduce){*{animation:none !important}#party .pstar,#party .pst{opacity:1}}
 @media (max-height:560px){.card .lbl,.note{display:none}}
 </style>
 </head>
@@ -247,7 +263,7 @@ h1{font-family:var(--display);font-weight:800;font-size:clamp(2.4rem,9vw,4.2rem)
       </div>
     </div>
   </div>
-  <button class="prog" id="btnBook" aria-label="Stickerboek"></button>
+  <button class="prog" id="btnBook" aria-label="Punten van vandaag en stickerboek"><span class="cnt starcnt"></span><span class="meter"></span><span class="day" id="dayCnt"></span></button>
   <div class="missions" id="missions"></div>
   <p class="note">Voor ouders: alles werkt met slepen of tikken, lezen hoeft niet.</p>
 </section>
@@ -258,6 +274,7 @@ h1{font-family:var(--display);font-weight:800;font-size:clamp(2.4rem,9vw,4.2rem)
     <div class="stars" id="stars" aria-label="Voortgang"></div>
     <div class="mascot" id="mascot"></div>
   </div>
+  <div class="meter solo"></div>
   <div id="play"></div>
 </section>
 
@@ -274,7 +291,7 @@ h1{font-family:var(--display);font-weight:800;font-size:clamp(2.4rem,9vw,4.2rem)
   <div class="bar">
     <button class="round" id="btnBookHome" aria-label="Terug naar het begin">🏠</button>
     <h2>Stickerboek</h2>
-    <span class="cnt" id="bookCnt"></span>
+    <span class="cnt starcnt" id="bookCnt"></span>
   </div>
   <div class="stickers" id="stickers"></div>
   <button class="reset" id="btnReset">Voor ouders: 3 seconden vasthouden om opnieuw te beginnen</button>
@@ -283,12 +300,14 @@ h1{font-family:var(--display);font-weight:800;font-size:clamp(2.4rem,9vw,4.2rem)
 <section class="screen" id="win">
   <div class="who" id="wWho"></div>
   <div class="prize" id="wPrize"></div>
-  <div id="wNew"></div>
+  <div class="meter solo"></div>
   <div class="rowx">
     <button class="big" id="btnAgain" aria-label="Nog een keer">🔁</button>
     <button class="big alt" id="btnBack" aria-label="Andere missie">🏠</button>
   </div>
 </section>
+
+<div id="party" aria-hidden="true"><div class="pstar">⭐</div><div class="pst" id="pSticker"></div></div>
 
 <script>
 (function(){
@@ -310,19 +329,70 @@ function store(k,v){
   try{if(v===undefined)return localStorage.getItem(k);localStorage.setItem(k,v)}
   catch(e){if(v===undefined)return k in mem?mem[k]:null;mem[k]=v}
 }
-/* Progress: one star per finished round; stars unlock stickers at these totals. */
-var STICKERS=[[5,"🍄"],[10,"🌰"],[20,"🐌"],[30,"🦋"],[45,"🐞"],[60,"🌻"],[80,"🍎"],[100,"🐸"],[125,"🦔"],[150,"🐿️"],
-  [180,"🦉"],[210,"🦊"],[250,"🦌"],[300,"🌈"],[350,"🏕️"],[400,"👑"]];
-function total(){return parseInt(store("bos-stars"),10)||0}
-function renderProg(){
-  var t=total(),n=null,p=0;
-  STICKERS.forEach(function(x){if(x[0]<=t)p=x[0];else if(!n)n=x});
-  var pct=n?Math.round((t-p)/(n[0]-p)*100):100;
-  $("btnBook").innerHTML='<span class="cnt">⭐ '+t+'</span><span class="track"><span class="fill" style="width:'+pct+'%"></span></span>'+
-    '<span class="nx'+(n?" lock":"")+'">'+(n?n[1]:"👑")+"</span>";
+/* Progress: 1 point per finished round, 5 per finished game. Points count per day; every 20 points is a star.
+   Stars are kept forever and unlock stickers at these totals. */
+var STICKERS=[[1,"🍄"],[2,"🌰"],[3,"🐌"],[5,"🦋"],[7,"🐞"],[9,"🌻"],[12,"🍎"],[15,"🐸"],[18,"🦔"],[22,"🐿️"],
+  [26,"🦉"],[30,"🦊"],[35,"🦌"],[40,"🌈"],[45,"🏕️"],[50,"👑"]];
+var GOAL=20,shown=0,shownStars=0,target=0,ticking=null;
+function today(){var d=new Date();return d.getFullYear()+"-"+(d.getMonth()+1)+"-"+d.getDate()}
+function total(){
+  var v=store("bos-stars2");
+  if(v==null){v=String(Math.floor((parseInt(store("bos-stars"),10)||0)/10));store("bos-stars2",v)}
+  return parseInt(v,10)||0;
+}
+function points(){
+  if(store("bos-day")!==today()){store("bos-day",today());store("bos-pts","0")}
+  return parseInt(store("bos-pts"),10)||0;
+}
+function renderMeters(full){
+  var v=full?GOAL:shown%GOAL;
+  each(document.querySelectorAll(".meter"),function(m){
+    if(!m.firstChild)m.innerHTML='<span class="track"><span class="fill"></span></span><span class="num"></span>';
+    m.querySelector(".fill").style.width=(v/GOAL*100)+"%";
+    m.querySelector(".num").textContent=v+"/"+GOAL;
+  });
+  each(document.querySelectorAll(".starcnt"),function(x){x.textContent="⭐ "+shownStars});
+  $("dayCnt").textContent="Vandaag "+shown;
+}
+function confetti(n){
+  if(window.matchMedia&&matchMedia("(prefers-reduced-motion: reduce)").matches)return;
+  var cols=["#ffc93c","#e4572e","#3a9ec2","#2f6b4f","#fff8e7","#f3b6e0"];
+  for(var i=0;i<n;i++){
+    var d=el("div","bit");d.style.left=rnd(100)+"vw";d.style.background=cols[i%cols.length];
+    if(i%3===0)d.style.borderRadius="50%";
+    d.style.animationDuration=(1.4+Math.random()*1.8)+"s";d.style.animationDelay=(Math.random()*.5)+"s";
+    document.body.appendChild(d);setTimeout(function(x){x.remove()},4200,d);
+  }
+}
+function party(){
+  var st=STICKERS.filter(function(x){return x[0]===shownStars})[0];
+  $("pSticker").textContent=st?st[1]:"";
+  var p=$("party");p.classList.remove("on");void p.getBoundingClientRect();p.classList.add("on");
+  sParty();confetti(90);
+  setTimeout(function(){p.classList.remove("on")},2600);
+}
+function tick(){
+  ticking=null;
+  if(shown>=target){if(shown>target){shown=target;renderMeters()}return}
+  shown++;sCount();
+  if(shown%GOAL===0){
+    shownStars++;renderMeters(true);party();
+    ticking=setTimeout(function(){renderMeters();tick()},1300);
+  }else{renderMeters();ticking=setTimeout(tick,150)}
+}
+function addPoints(n){
+  var t=points(),nt=t+n,gain=Math.floor(nt/GOAL)-Math.floor(t/GOAL);
+  store("bos-pts",String(nt));
+  if(gain)store("bos-stars2",String(total()+gain));
+  if(shown>t)shown=t;
+  target=nt;if(!ticking)tick();
+}
+function syncMeters(){
+  clearTimeout(ticking);ticking=null;
+  shown=target=points();shownStars=total();renderMeters();
 }
 function bookScreen(){
-  var t=total(),g=$("stickers");g.innerHTML="";$("bookCnt").textContent="⭐ "+t;
+  var t=total(),g=$("stickers");g.innerHTML="";
   STICKERS.forEach(function(x){
     var got=x[0]<=t;
     g.appendChild(el("div","st"+(got?"":" lock"),"<span>"+x[1]+"</span>"+(got?"":"<small>⭐ "+x[0]+"</small>")));
@@ -332,21 +402,56 @@ function bookScreen(){
 function each(list,fn){Array.prototype.forEach.call(list,fn)}
 function reshake(e,cls){e.classList.remove(cls);void e.getBoundingClientRect();e.classList.add(cls)}
 
-var actx=null;
-function tone(f,d,delay,type){
+var actx=null,master=null;
+var SCALE=[523.25,587.33,659.25,783.99,880,1046.5,1174.66,1318.51,1567.98,1760];
+function audio(){
+  if(!actx){
+    actx=new (window.AudioContext||window.webkitAudioContext)();
+    master=actx.createGain();master.gain.value=.5;master.connect(actx.destination);
+    var d=actx.createDelay(),fb=actx.createGain(),wet=actx.createGain();
+    d.delayTime.value=.17;fb.gain.value=.28;wet.gain.value=.22;
+    master.connect(d);d.connect(fb);fb.connect(d);d.connect(wet);wet.connect(actx.destination);
+  }
+  if(actx.state==="suspended")actx.resume();
+  return actx;
+}
+/* One mallet note: a sine with two quiet overtones and a fast, soft decay. */
+function note(f,delay,dur,vol){
   try{
-    if(!actx)actx=new (window.AudioContext||window.webkitAudioContext)();
-    if(actx.state==="suspended")actx.resume();
-    var o=actx.createOscillator(),g=actx.createGain(),t=actx.currentTime+(delay||0);
-    o.type=type||"triangle";o.frequency.value=f;
-    g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(.22,t+.02);g.gain.exponentialRampToValueAtTime(.0001,t+d);
-    o.connect(g);g.connect(actx.destination);o.start(t);o.stop(t+d+.05);
+    var a=audio(),t=a.currentTime+(delay||0);dur=dur||.5;vol=vol||.3;
+    [[1,1],[2,.28],[4,.1]].forEach(function(h){
+      var o=a.createOscillator(),g=a.createGain();
+      o.type="sine";o.frequency.value=f*h[0];
+      g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(vol*h[1],t+.008);
+      g.gain.exponentialRampToValueAtTime(.0001,t+dur/h[0]);
+      o.connect(g);g.connect(master);o.start(t);o.stop(t+dur+.05);
+    });
   }catch(e){}
 }
-function sRight(){tone(523,.18,0);tone(659,.18,.12);tone(784,.3,.24)}
-function sWrong(){tone(220,.25,0,"sine")}
-function sTap(i){tone(440+(i||0)*40,.12,0)}
-function sWin(){[523,659,784,1047,784,1047].forEach(function(f,i){tone(f,.25,i*.14)})}
+/* A short "bloop": a sine that slides in pitch. */
+function slide(f1,f2,dur,vol,delay){
+  try{
+    var a=audio(),t=a.currentTime+(delay||0),o=a.createOscillator(),g=a.createGain();
+    o.type="sine";o.frequency.setValueAtTime(f1,t);o.frequency.exponentialRampToValueAtTime(f2,t+dur);
+    g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(vol||.3,t+.01);g.gain.exponentialRampToValueAtTime(.0001,t+dur+.04);
+    o.connect(g);g.connect(master);o.start(t);o.stop(t+dur+.1);
+  }catch(e){}
+}
+function sRight(){[0,2,3,5].forEach(function(i,n){note(SCALE[i],n*.09,.6,.3)})}
+function sWrong(){slide(330,190,.22,.22)}
+function sTap(i){note(SCALE[(i||0)%SCALE.length],0,.45,.28)}
+function sCount(){slide(700,1100,.06,.16)}
+function sWin(){
+  [0,2,3,5,3,5,7].forEach(function(i,n){note(SCALE[i],n*.13,.7,.3)});
+  [3,5,7].forEach(function(i){note(SCALE[i],1.0,1.4,.22)});
+  for(var k=0;k<8;k++)note(SCALE[5+rnd(5)]*2,1.0+k*.07,.3,.08);
+}
+function sParty(){
+  slide(300,1200,.5,.2);
+  [0,2,3,5,7].forEach(function(i,n){note(SCALE[i],.45+n*.08,.9,.3)});
+  [0,3,5,7].forEach(function(i){note(SCALE[i],.95,1.8,.2)});
+  for(var k=0;k<12;k++)note(SCALE[5+rnd(5)]*2,1+k*.06,.3,.08);
+}
 
 /* Recorded letter sounds: a parent records each klank once; kept on this device in IndexedDB. */
 var snd={},db=null,player=null,stream=null,recBusy=false;
@@ -445,7 +550,7 @@ function go(id){["home","game","win","rec","book"].forEach(function(s){$(s).clas
 function done(delay){
   lock=true;sRight();
   $("stars").children[round].classList.add("got");
-  store("bos-stars",String(total()+1));
+  addPoints(1);confetti(12);
   reshake($("mascot"),"cheer");
   clearTimeout(timer);
   timer=setTimeout(function(){round++;round>=cur.rounds?win():next()},delay||1500);
@@ -817,18 +922,9 @@ function start(m){
 function win(){
   var k="bos-"+cur.id,n=(parseInt(store(k),10)||0)+1;store(k,String(n));
   clean();play.innerHTML="";
-  var t=total(),before=t-cur.rounds;
-  $("wPrize").textContent="+"+cur.rounds+" ⭐";
-  $("wNew").innerHTML=STICKERS.filter(function(x){return x[0]>before&&x[0]<=t}).map(function(x){return "<span>"+x[1]+"</span>"}).join("");
-  $("wWho").textContent=cur.who;go("win");sWin();
-  var cols=["#ffc93c","#e4572e","#3a9ec2","#2f6b4f","#fff8e7"];
-  if(!(window.matchMedia&&matchMedia("(prefers-reduced-motion: reduce)").matches)){
-    for(var i=0;i<40;i++){
-      var d=el("div","bit");d.style.left=rnd(100)+"vw";d.style.background=cols[i%5];
-      d.style.animationDuration=(1.6+Math.random()*1.8)+"s";d.style.animationDelay=(Math.random()*.6)+"s";
-      document.body.appendChild(d);setTimeout(function(x){x.remove()},4500,d);
-    }
-  }
+  $("wPrize").textContent="+5";
+  $("wWho").textContent=cur.who;go("win");sWin();confetti(60);
+  setTimeout(function(){addPoints(5)},700);
 }
 function home(){
   clearTimeout(timer);clean();play.innerHTML="";stopStream();
@@ -840,7 +936,7 @@ function home(){
     b.onclick=function(){start(m)};
     box.appendChild(b);
   });
-  renderProg();
+  if(!ticking)syncMeters();
   $("caseUp").setAttribute("aria-pressed",String(state.caps));
   $("caseLow").setAttribute("aria-pressed",String(!state.caps));
   go("home");
@@ -857,7 +953,7 @@ $("btnBook").onclick=bookScreen;
   b.addEventListener("pointerdown",function(){
     stop();
     h=setTimeout(function(){
-      store("bos-stars","0");MISSIONS.forEach(function(m){store("bos-"+m.id,"0")});bookScreen();
+      store("bos-stars","0");store("bos-stars2","0");store("bos-pts","0");syncMeters();MISSIONS.forEach(function(m){store("bos-"+m.id,"0")});bookScreen();
     },3000);
   });
   ["pointerup","pointerleave","pointercancel"].forEach(function(ev){b.addEventListener(ev,stop)});
@@ -868,6 +964,7 @@ $("btnAgain").onclick=function(){start(cur)};
 
 function boot(data){
   openDB(loadSnd);
+  syncMeters();
   var saved=store("bos-caps");
   if(data&&typeof data.caps==="boolean")state.caps=data.caps;
   else if(saved!=null)state.caps=saved!=="0";
